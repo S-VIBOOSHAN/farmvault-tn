@@ -1,0 +1,15 @@
+{
+  "farms": [
+    { "id": 1, "name": "Kumar Farm", "district": "Salem", "createdAt": "2026-01-01T00:00:00.000Z" }
+  ],
+  "fields": [
+    { "id": 1, "farmId": 1, "code": "F-01", "area": 1.2, "soil": "Red Soil", "irrigation": "Borewell", "crop": "Paddy", "notes": "Water stagnates after heavy rain.", "createdAt": "2026-01-01T00:00:00.000Z" },
+    { "id": 2, "farmId": 1, "code": "F-02", "area": 0.8, "soil": "Black Soil (Regur)", "irrigation": "Canal", "crop": "Groundnut", "notes": "", "createdAt": "2026-01-01T00:00:00.000Z" }
+  ],
+  "fertilizerLogs": [],
+  "expenses": [],
+  "harvests": [
+    { "id": 1, "farmId": 1, "fieldCode": "F-01", "year": 2025, "crop": "Paddy", "yieldKg": 2400, "cost": 18500, "createdAt": "2026-01-01T00:00:00.000Z" },
+    { "id": 2, "farmId": 1, "fieldCode": "F-01", "year": 2026, "crop": "Paddy", "yieldKg": 2650, "cost": 19200, "createdAt": "2026-01-01T00:00:00.000Z" }
+  ]
+}

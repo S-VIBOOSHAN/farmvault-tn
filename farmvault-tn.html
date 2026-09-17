@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FarmVault TN — Smart Farm Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f7f2; --card:#ffffff; --text:#1c2a1e; --muted:#5c6b5e;
+  --primary:#2e7d32; --primary-dark:#1b5e20; --accent:#f9a825;
+  --border:#e1e8dd; --danger:#c62828; --shadow: 0 2px 10px rgba(0,0,0,0.06);
+  --tab-inactive:#9aa79b;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10160f; --card:#1a221a; --text:#eaf2e8; --muted:#9db09c;
+    --primary:#66bb6a; --primary-dark:#4caf50; --accent:#ffca28;
+    --border:#2a352a; --danger:#ef5350; --shadow: 0 2px 10px rgba(0,0,0,0.4);
+    --tab-inactive:#5f6e5f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10160f; --card:#1a221a; --text:#eaf2e8; --muted:#9db09c;
+  --primary:#66bb6a; --primary-dark:#4caf50; --accent:#ffca28;
+  --border:#2a352a; --danger:#ef5350; --shadow: 0 2px 10px rgba(0,0,0,0.4);
+  --tab-inactive:#5f6e5f;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg); color:var(--text); padding-bottom:70px; min-height:100vh;
+}
+.app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative;}
+header.topbar{
+  position:sticky; top:0; z-index:20; background:var(--primary); color:#fff;
+  padding:14px 16px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:var(--shadow);
+}
+header.topbar h1{font-size:17px; margin:0; font-weight:700; display:flex; align-items:center; gap:8px;}
+header.topbar .lang-btn{background:rgba(255,255,255,0.2); border:none; color:#fff; padding:6px 10px; border-radius:20px; font-size:12px;}
+.screen{display:none; padding:14px 14px 20px;}
+.screen.active{display:block;}
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:var(--shadow);}
+.card h3{margin:0 0 8px; font-size:15px; color:var(--primary-dark);}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.stat{text-align:center; padding:10px; background:var(--card); border-radius:12px; border:1px solid var(--border);}
+.stat .num{font-size:22px; font-weight:800; color:var(--primary);}
+.stat .lbl{font-size:11px; color:var(--muted);}
+.menu-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.menu-item{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 6px; text-align:center; cursor:pointer; transition:transform .1s;}
+.menu-item:active{transform:scale(0.96);}
+.menu-item .ic{font-size:26px; display:block; margin-bottom:6px;}
+.menu-item .lb{font-size:11.5px; color:var(--text); font-weight:600;}
+button.primary{background:var(--primary); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:600; cursor:pointer;}
+button.secondary{background:transparent; color:var(--primary); border:1.5px solid var(--primary); border-radius:10px; padding:9px 14px; font-size:14px; font-weight:600; cursor:pointer;}
+input,select,textarea{
+  width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:9px;
+  background:var(--bg); color:var(--text); font-size:14px; margin-bottom:8px;
+}
+label{font-size:12px; color:var(--muted); display:block; margin-bottom:3px; margin-top:6px;}
+.field-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);}
+.field-row:last-child{border-bottom:none;}
+.badge{display:inline-block; background:var(--primary); color:#fff; font-size:10.5px; padding:2px 8px; border-radius:20px;}
+.badge.warn{background:var(--accent); color:#3b2c00;}
+.badge.soft{background:var(--border); color:var(--muted);}
+.crop-chip{display:inline-block; padding:6px 10px; margin:3px 4px 3px 0; border-radius:20px; background:var(--border); font-size:12px; cursor:pointer; border:1px solid transparent;}
+.crop-chip.active{background:var(--primary); color:#fff;}
+.list-item{display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--border); cursor:pointer;}
+.list-item:last-child{border-bottom:none;}
+.list-item .t{font-weight:600; font-size:14px;}
+.list-item .s{font-size:11.5px; color:var(--muted);}
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:30; background:var(--card);
+  border-top:1px solid var(--border); display:flex; max-width:480px; margin:0 auto;
+  box-shadow:0 -2px 10px rgba(0,0,0,0.08);
+}
+.bottom-nav button{
+  flex:1; background:none; border:none; padding:9px 2px 8px; display:flex; flex-direction:column;
+  align-items:center; gap:2px; color:var(--tab-inactive); font-size:10.5px; cursor:pointer;
+}
+.bottom-nav button.active{color:var(--primary); font-weight:700;}
+.bottom-nav button .ic{font-size:19px;}
+.modal-bg{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:50; display:none; align-items:flex-end; justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:18px; max-height:85vh; overflow-y:auto;}
+.modal h3{margin-top:0;}
+.close-x{float:right; background:var(--border); border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; color:var(--text);}
+.chat-wrap{display:flex; flex-direction:column; height:calc(100vh - 200px); min-height:400px;}
+.chat-log{flex:1; overflow-y:auto; padding:6px 2px; display:flex; flex-direction:column; gap:8px;}
+.msg{max-width:82%; padding:9px 12px; border-radius:14px; font-size:13.5px; line-height:1.4;}
+.msg.user{align-self:flex-end; background:var(--primary); color:#fff; border-bottom-right-radius:3px;}
+.msg.bot{align-self:flex-start; background:var(--border); color:var(--text); border-bottom-left-radius:3px; white-space:pre-line;}
+.chat-input-row{display:flex; gap:8px; padding-top:8px;}
+.chat-input-row input{margin-bottom:0;}
+.suggest-row{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+.suggest-chip{background:var(--border); border:none; border-radius:16px; padding:6px 10px; font-size:11.5px; color:var(--text); cursor:pointer;}
+.small-note{font-size:11px; color:var(--muted); margin-top:6px;}
+.section-title{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:16px 0 8px;}
+.tag-row{display:flex; flex-wrap:wrap; gap:6px;}
+.empty{text-align:center; color:var(--muted); font-size:13px; padding:20px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <h1>🌱 <span id="appTitleText">FarmVault TN</span></h1>
+    <button class="lang-btn" onclick="toggleLang()">EN / தமிழ்</button>
+  </header>
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="card">
+      <h3 id="farmNameLbl">My Farm</h3>
+      <div class="grid2">
+        <div class="stat"><div class="num" id="statAcres">0</div><div class="lbl">Total Acres</div></div>
+        <div class="stat"><div class="num" id="statFields">0</div><div class="lbl">Fields</div></div>
+        <div class="stat"><div class="num" id="statCrops">0</div><div class="lbl">Active Crops</div></div>
+        <div class="stat"><div class="num" id="statAlerts">0</div><div class="lbl">Alerts</div></div>
+      </div>
+    </div>
+
+    <div class="card" onclick="go('assistant')" style="cursor:pointer;">
+      <h3>🤖 Ask Farm AI</h3>
+      <div class="small-note" style="margin-top:0;">"F-01 வயலில் இப்போ என்ன பயிர்?" · "Fertilizer for paddy at tillering?"</div>
+      <button class="primary" style="margin-top:8px;" onclick="event.stopPropagation(); go('assistant')">Open Assistant</button>
+    </div>
+
+    <div class="section-title">Quick Access</div>
+    <div class="menu-grid">
+      <div class="menu-item" onclick="go('farm')"><span class="ic">🗺️</span><span class="lb">My Farm</span></div>
+      <div class="menu-item" onclick="go('crops')"><span class="ic">🌾</span><span class="lb">Crop Catalogue</span></div>
+      <div class="menu-item" onclick="go('fertilizer')"><span class="ic">🧪</span><span class="lb">Fertilizer</span></div>
+      <div class="menu-item" onclick="go('pest')"><span class="ic">🐛</span><span class="lb">Pest & Disease</span></div>
+      <div class="menu-item" onclick="go('weather')"><span class="ic">🌦️</span><span class="lb">Weather</span></div>
+      <div class="menu-item" onclick="go('climate')"><span class="ic">🌍</span><span class="lb">Climate</span></div>
+      <div class="menu-item" onclick="go('govt')"><span class="ic">🏛️</span><span class="lb">Govt Schemes</span></div>
+      <div class="menu-item" onclick="go('expenses')"><span class="ic">💰</span><span class="lb">Expenses</span></div>
+      <div class="menu-item" onclick="go('reports')"><span class="ic">📊</span><span class="lb">Reports</span></div>
+    </div>
+
+    <div class="section-title">🔔 Alerts</div>
+    <div class="card" id="alertsBox"></div>
+  </div>
+
+  <!-- FARM / FIELDS -->
+  <div class="screen" id="screen-farm">
+    <div class="card">
+      <h3>🗺️ My Farm</h3>
+      <div id="fieldMapView" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
+      <button class="primary" onclick="openFieldModal()">+ Add Field</button>
+    </div>
+    <div class="card" id="fieldListCard">
+      <h3>Fields</h3>
+      <div id="fieldList"></div>
+    </div>
+  </div>
+
+  <!-- CROPS CATALOGUE -->
+  <div class="screen" id="screen-crops">
+    <div class="card">
+      <h3>🌾 Tamil Nadu Crop Catalogue</h3>
+      <div class="tag-row" id="cropCategoryTags"></div>
+    </div>
+    <div class="card">
+      <input type="text" placeholder="Search crop (e.g. Paddy, நெல்)" id="cropSearch" oninput="renderCrops()">
+      <div id="cropList"></div>
+    </div>
+  </div>
+
+  <!-- FERTILIZER -->
+  <div class="screen" id="screen-fertilizer">
+    <div class="card">
+      <h3>🧪 Fertilizer Guidance</h3>
+      <label>Select Crop</label>
+      <select id="fertCropSelect" onchange="renderFertilizer()"></select>
+      <label>Growth Stage</label>
+      <select id="fertStageSelect" onchange="renderFertilizer()"></select>
+      <div id="fertOutput"></div>
+      <div class="small-note">Values are indicative sample ranges for demo purposes — always confirm with your local Agriculture Officer / TNAU recommendations before applying.</div>
+    </div>
+    <div class="card">
+      <h3>Log Fertilizer Usage</h3>
+      <label>Field</label>
+      <select id="fertLogField"></select>
+      <label>Fertilizer Name</label>
+      <input type="text" id="fertLogName" placeholder="e.g. Urea">
+      <label>Quantity (kg)</label>
+      <input type="number" id="fertLogQty" placeholder="e.g. 25">
+      <button class="primary" onclick="logFertilizer()">Save Record</button>
+    </div>
+    <div class="card">
+      <h3>Usage History</h3>
+      <div id="fertHistory"></div>
+    </div>
+  </div>
+
+  <!-- PEST -->
+  <div class="screen" id="screen-pest">
+    <div class="card">
+      <h3>🐛 Pest & Disease Information</h3>
+      <label>Select Crop</label>
+      <select id="pestCropSelect" onchange="renderPest()"></select>
+      <div id="pestOutput"></div>
+      <div class="small-note">Monitoring guidance only — this is not a confirmed diagnosis. Consult your local Agriculture Extension Officer for verification.</div>
+    </div>
+  </div>
+
+  <!-- WEATHER -->
+  <div class="screen" id="screen-weather">
+    <div class="card">
+      <h3>🌦️ Weather — <span id="weatherLoc">Attur, Salem</span></h3>
+      <div class="grid2">
+        <div class="stat"><div class="num">31°C</div><div class="lbl">Temperature</div></div>
+        <div class="stat"><div class="num">68%</div><div class="lbl">Humidity</div></div>
+        <div class="stat"><div class="num">40%</div><div class="lbl">Rain Chance</div></div>
+        <div class="stat"><div class="num">11 km/h</div><div class="lbl">Wind</div></div>
+      </div>
+      <div class="small-note">Sample demo data. Production version connects to a live weather API (e.g. IMD / Open-Meteo) keyed to farm GPS location.</div>
+    </div>
+    <div class="card">
+      <h3>5-Day Forecast (sample)</h3>
+      <div id="forecastList"></div>
+    </div>
+    <div class="card" style="border-color:var(--accent);">
+      <h3>⚠️ Advisory</h3>
+      <p style="font-size:13px;">Moderate rain expected later this week. Review drainage in low-lying fields and postpone fertilizer application if heavy rain is forecast.</p>
+    </div>
+  </div>
+
+  <!-- CLIMATE -->
+  <div class="screen" id="screen-climate">
+    <div class="card">
+      <h3>🌍 Climate History (sample)</h3>
+      <canvas id="climateChart" height="180"></canvas>
+      <div class="small-note">Illustrative multi-year rainfall pattern. Replace with your farm's actual recorded data over time.</div>
+    </div>
+    <div class="card">
+      <h3>Observations</h3>
+      <p style="font-size:13px;">Fields with historically lower recorded rainfall years also show comparatively lower yield entries — visible once you log a few seasons of harvest data in Reports.</p>
+    </div>
+  </div>
+
+  <!-- GOVERNMENT -->
+  <div class="screen" id="screen-govt">
+    <div class="card">
+      <h3>🏛️ Government Schemes (sample list)</h3>
+      <div id="govtList"></div>
+      <div class="small-note">Scheme names shown for reference only — eligibility, amounts and application steps change over time. Always verify on the official Tamil Nadu Agriculture Department / PM-KISAN / PMFBY portals before applying.</div>
+    </div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="screen" id="screen-expenses">
+    <div class="card">
+      <h3>💰 Expenses & Income</h3>
+      <label>Field</label>
+      <select id="expField"></select>
+      <label>Type</label>
+      <select id="expType">
+        <option>Seed</option><option>Fertilizer</option><option>Pesticide</option>
+        <option>Labour</option><option>Irrigation</option><option>Machinery</option>
+        <option>Transport</option><option>Other</option><option>Harvest Sale (Income)</option>
+      </select>
+      <label>Amount (₹)</label>
+      <input type="number" id="expAmount">
+      <button class="primary" onclick="addExpense()">Add Entry</button>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="stat"><div class="num" id="totalExpense">₹0</div><div class="lbl">Total Cost</div></div>
+        <div class="stat"><div class="num" id="totalIncome">₹0</div><div class="lbl">Total Income</div></div>
+      </div>
+      <div style="margin-top:10px; text-align:center;">
+        <div class="num" style="font-size:20px;" id="netProfit">₹0</div>
+        <div class="lbl">Net Profit / Loss</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Entries</h3>
+      <div id="expenseList"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="screen" id="screen-reports">
+    <div class="card">
+      <h3>📊 Crop / Yield History</h3>
+      <button class="secondary" onclick="openHarvestModal()">+ Add Harvest Record</button>
+      <div id="reportsList" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h3>Yield Trend</h3>
+      <canvas id="yieldChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- AI ASSISTANT -->
+  <div class="screen" id="screen-assistant">
+    <div class="card" style="padding:10px 12px;">
+      <div class="chat-wrap">
+        <div class="chat-log" id="chatLog"></div>
+        <div class="suggest-row">
+          <button class="suggest-chip" onclick="askPreset('acres')">Total acres?</button>
+          <button class="suggest-chip" onclick="askPreset('crop')">Crop in F-01?</button>
+          <button class="suggest-chip" onclick="askPreset('fert')">Paddy fertilizer?</button>
+          <button class="suggest-chip" onclick="askPreset('history')">Last year's crop?</button>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Ask in Tamil or English..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="primary" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MORE -->
+  <div class="screen" id="screen-more">
+    <div class="card">
+      <h3>More</h3>
+      <div class="menu-grid">
+        <div class="menu-item" onclick="go('fertilizer')"><span class="ic">🧪</span><span class="lb">Fertilizer</span></div>
+        <div class="menu-item" onclick="go('pest')"><span class="ic">🐛</span><span class="lb">Pest & Disease</span></div>
+        <div class="menu-item" onclick="go('weather')"><span class="ic">🌦️</span><span class="lb">Weather</span></div>
+        <div class="menu-item" onclick="go('climate')"><span class="ic">🌍</span><span class="lb">Climate</span></div>
+        <div class="menu-item" onclick="go('govt')"><span class="ic">🏛️</span><span class="lb">Govt Schemes</span></div>
+        <div class="menu-item" onclick="go('expenses')"><span class="ic">💰</span><span class="lb">Expenses</span></div>
+        <div class="menu-item" onclick="go('reports')"><span class="ic">📊</span><span class="lb">Reports</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Data</h3>
+      <button class="secondary" onclick="resetData()">Reset Demo Data</button>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button data-tab="home" onclick="go('home')"><span class="ic">🏠</span>Home</button>
+    <button data-tab="farm" onclick="go('farm')"><span class="ic">🗺️</span>Farm</button>
+    <button data-tab="crops" onclick="go('crops')"><span class="ic">🌾</span>Crops</button>
+    <button data-tab="assistant" onclick="go('assistant')"><span class="ic">🤖</span>AI</button>
+    <button data-tab="more" onclick="go('more')"><span class="ic">⋯</span>More</button>
+  </nav>
+</div>
+
+<!-- Field modal -->
+<div class="modal-bg" id="fieldModalBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('fieldModalBg')">✕</button>
+    <h3>Add Field</h3>
+    <label>Field Name / ID</label>
+    <input type="text" id="fmName" placeholder="e.g. F-04">
+    <label>Area (acres)</label>
+    <input type="number" step="0.01" id="fmArea" placeholder="e.g. 1.2">
+    <label>Soil Type</label>
+    <select id="fmSoil"><option>Red Soil</option><option>Black Soil (Regur)</option><option>Alluvial</option><option>Clay Loam</option><option>Sandy Loam</option><option>Laterite</option></select>
+    <label>Irrigation Source</label>
+    <select id="fmIrrig"><option>Borewell</option><option>Canal</option><option>Tank/Pond</option><option>Rainfed</option><option>Drip</option></select>
+    <label>Current Crop</label>
+    <input type="text" id="fmCrop" placeholder="e.g. Paddy">
+    <label>Farmer Notes</label>
+    <textarea id="fmNotes" rows="2" placeholder="e.g. Water stagnates here after heavy rain"></textarea>
+    <button class="primary" onclick="saveField()" style="width:100%; margin-top:6px;">Save Field</button>
+  </div>
+</div>
+
+<!-- Harvest modal -->
+<div class="modal-bg" id="harvestModalBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('harvestModalBg')">✕</button>
+    <h3>Add Harvest Record</h3>
+    <label>Field</label>
+    <select id="hmField"></select>
+    <label>Year</label>
+    <input type="number" id="hmYear" placeholder="2026">
+    <label>Crop</label>
+    <input type="text" id="hmCrop" placeholder="Paddy">
+    <label>Yield (kg)</label>
+    <input type="number" id="hmYield">
+    <label>Cost (₹)</label>
+    <input type="number" id="hmCost">
+    <button class="primary" onclick="saveHarvest()" style="width:100%; margin-top:6px;">Save Record</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- Data ---------------- */
+const CROPS = [
+ {cat:"Food Grains & Millets", en:"Paddy", ta:"நெல்", season:"Kuruvai/Samba", duration:"105-135 days"},
+ {cat:"Food Grains & Millets", en:"Maize", ta:"மக்காச்சோளம்", season:"Kharif/Rabi", duration:"90-110 days"},
+ {cat:"Food Grains & Millets", en:"Sorghum (Cholam)", ta:"சோளம்", season:"Rainfed", duration:"100-120 days"},
+ {cat:"Food Grains & Millets", en:"Finger Millet (Ragi)", ta:"கேழ்வரகு", season:"Rainfed", duration:"110-130 days"},
+ {cat:"Food Grains & Millets", en:"Pearl Millet (Cumbu)", ta:"கம்பு", season:"Kharif", duration:"75-90 days"},
+ {cat:"Food Grains & Millets", en:"Little Millet (Samai)", ta:"சாமை", season:"Rainfed", duration:"90-100 days"},
+ {cat:"Pulses", en:"Blackgram", ta:"உளுந்து", season:"Post-monsoon", duration:"70-90 days"},
+ {cat:"Pulses", en:"Greengram", ta:"பாசிப்பயறு", season:"Summer/Kharif", duration:"65-75 days"},
+ {cat:"Pulses", en:"Redgram (Tur)", ta:"துவரை", season:"Kharif", duration:"150-180 days"},
+ {cat:"Pulses", en:"Bengal Gram", ta:"கொண்டைக்கடலை", season:"Rabi", duration:"90-110 days"},
+ {cat:"Oilseeds", en:"Groundnut", ta:"நிலக்கடலை", season:"Kharif/Rabi", duration:"100-120 days"},
+ {cat:"Oilseeds", en:"Gingelly (Sesame)", ta:"எள்", season:"Summer", duration:"75-90 days"},
+ {cat:"Oilseeds", en:"Sunflower", ta:"சூரியகாந்தி", season:"All seasons", duration:"90-100 days"},
+ {cat:"Oilseeds", en:"Castor", ta:"ஆமணக்கு", season:"Rainfed", duration:"150-180 days"},
+ {cat:"Commercial & Fibre", en:"Sugarcane", ta:"கரும்பு", season:"Year-round planting", duration:"11-12 months"},
+ {cat:"Commercial & Fibre", en:"Cotton", ta:"பருத்தி", season:"Kharif", duration:"150-180 days"},
+ {cat:"Commercial & Fibre", en:"Tobacco", ta:"புகையிலை", season:"Rabi", duration:"120-150 days"},
+ {cat:"Vegetables", en:"Tomato", ta:"தக்காளி", season:"All seasons", duration:"90-120 days"},
+ {cat:"Vegetables", en:"Brinjal", ta:"கத்தரிக்காய்", season:"All seasons", duration:"120-150 days"},
+ {cat:"Vegetables", en:"Okra (Ladies Finger)", ta:"வெண்டைக்காய்", season:"All seasons", duration:"50-65 days"},
+ {cat:"Vegetables", en:"Onion", ta:"வெங்காயம்", season:"Rabi", duration:"100-120 days"},
+ {cat:"Vegetables", en:"Chilli", ta:"மிளகாய்", season:"Kharif/Rabi", duration:"150-180 days"},
+ {cat:"Fruits", en:"Banana", ta:"வாழை", season:"Year-round planting", duration:"11-13 months"},
+ {cat:"Fruits", en:"Mango", ta:"மாம்பழம்", season:"Perennial", duration:"3-5 yrs to bear"},
+ {cat:"Fruits", en:"Guava", ta:"கொய்யா", season:"Perennial", duration:"2-3 yrs to bear"},
+ {cat:"Fruits", en:"Papaya", ta:"பப்பாளி", season:"Year-round", duration:"9-11 months"},
+ {cat:"Plantation", en:"Coconut", ta:"தென்னை", season:"Perennial", duration:"5-6 yrs to bear"},
+ {cat:"Plantation", en:"Arecanut", ta:"பாக்கு", season:"Perennial", duration:"5-7 yrs to bear"},
+ {cat:"Spices & Condiments", en:"Turmeric", ta:"மஞ்சள்", season:"Kharif", duration:"7-9 months"},
+ {cat:"Spices & Condiments", en:"Coriander", ta:"கொத்தமல்லி", season:"Rabi/Summer", duration:"90-100 days"},
+ {cat:"Flowers", en:"Jasmine", ta:"மல்லிகை", season:"Perennial", duration:"Year-round bloom"},
+ {cat:"Flowers", en:"Marigold", ta:"சாமந்தி", season:"All seasons", duration:"75-90 days"},
+ {cat:"Medicinal & Aromatic", en:"Aloe Vera", ta:"கற்றாழை", season:"Perennial", duration:"8-10 months"},
+ {cat:"Regional/Speciality", en:"Betel Vine", ta:"வெற்றிலை", season:"Perennial", duration:"Continuous harvest"},
+];
+
+const FERT_RULES = {
+ "Paddy": {"Nursery":"Basal: FYM + DAP as per soil test.","Vegetative/Tillering":"N split dose (Urea) + full P + half K.","Flowering":"Remaining K + micronutrient spray if deficiency symptoms seen.","Harvest prep":"Stop N application 3 weeks before harvest."},
+ "Groundnut": {"Nursery":"Gypsum + basal P at sowing.","Vegetative/Tillering":"Light N top-dress if leaves pale.","Flowering":"Gypsum top-dress at pegging stage.","Harvest prep":"Avoid excess N late season — reduces pod fill."},
+ "Sugarcane": {"Nursery":"Basal N-P-K as per soil test at planting.","Vegetative/Tillering":"First N top-dress at tillering.","Flowering":"Second/third N split + K before grand growth.","Harvest prep":"Stop N 6-8 weeks before harvest."},
+ "Cotton": {"Nursery":"Basal P + K at sowing.","Vegetative/Tillering":"First N split at squaring.","Flowering":"Second N split + K at flowering/boll formation.","Harvest prep":"Foliar micronutrients if boll shedding observed."},
+ "Maize": {"Nursery":"Basal N-P-K at sowing.","Vegetative/Tillering":"N top-dress at knee-high stage.","Flowering":"N top-dress at tasseling.","Harvest prep":"No further fertilizer needed."},
+};
+const DEFAULT_STAGES = ["Nursery","Vegetative/Tillering","Flowering","Harvest prep"];
+
+const PEST_DB = {
+ "Paddy":[{stage:"Vegetative",pest:"Stem borer",symptom:"Dead heart in young shoots",mgmt:"Field monitoring, pheromone traps, balanced N use."},
+          {stage:"Tillering",pest:"Brown Plant Hopper",symptom:"Yellowing, hopper burn patches",mgmt:"Avoid excess N, maintain field drainage, monitor base of plant."}],
+ "Groundnut":[{stage:"Vegetative",pest:"Leaf miner",symptom:"Mining trails on leaves",mgmt:"Monitor regularly, avoid water stress."},
+              {stage:"Flowering",pest:"Tikka leaf spot",symptom:"Circular brown spots on leaves",mgmt:"Field sanitation, monitor humidity periods."}],
+ "Cotton":[{stage:"Vegetative",pest:"Aphids",symptom:"Curling of young leaves",mgmt:"Monitor undersides of leaves, avoid excess N."},
+           {stage:"Flowering",pest:"Bollworm",symptom:"Holes in bolls/squares",mgmt:"Pheromone traps, regular scouting."}],
+ "Sugarcane":[{stage:"Vegetative",pest:"Early shoot borer",symptom:"Dead heart, central shoot withers",mgmt:"Field monitoring, remove affected shoots."}],
+ "Maize":[{stage:"Vegetative",pest:"Fall armyworm",symptom:"Window-pane feeding on leaves, whorl damage",mgmt:"Early monitoring of whorls, field sanitation."}],
+};
+
+const GOVT_SCHEMES = [
+ {name:"PM-KISAN", desc:"Central income support scheme for landholding farmer families.", tag:"Central"},
+ {name:"PMFBY (Crop Insurance)", desc:"Covers crop loss from drought, flood, cyclone, pest & disease events.", tag:"Central"},
+ {name:"TN Chief Minister's Uzhavar Padhukappu / State schemes", desc:"State-level farmer welfare & input assistance programmes — check current notification.", tag:"State"},
+ {name:"Soil Health Card Scheme", desc:"Soil testing and nutrient recommendation support.", tag:"Central"},
+ {name:"Micro Irrigation Subsidy (Drip/Sprinkler)", desc:"Subsidy support for water-saving irrigation equipment.", tag:"State/Central"},
+];
+
+/* ---------------- State (localStorage) ---------------- */
+let LANG = 'en';
+function loadState(){
+  const def = {
+    farmName:"Kumar Farm",
+    fields:[
+      {id:"F-01", area:1.2, soil:"Red Soil", irrig:"Borewell", crop:"Paddy", notes:"Water stagnates after heavy rain."},
+      {id:"F-02", area:0.8, soil:"Black Soil (Regur)", irrig:"Canal", crop:"Groundnut", notes:""},
+    ],
+    fertLogs:[], expenses:[], harvests:[
+      {field:"F-01", year:2025, crop:"Paddy", yield:2400, cost:18500},
+      {field:"F-01", year:2026, crop:"Paddy", yield:2650, cost:19200},
+    ]
+  };
+  try{
+    const raw = localStorage.getItem('farmvault_tn_state');
+    return raw ? JSON.parse(raw) : def;
+  }catch(e){ return def; }
+}
+let STATE = loadState();
+function saveState(){
+  try{ localStorage.setItem('farmvault_tn_state', JSON.stringify(STATE)); }catch(e){}
+}
+function resetData(){
+  if(confirm('Reset all demo data?')){
+    localStorage.removeItem('farmvault_tn_state');
+    STATE = loadState();
+    renderAll();
+  }
+}
+
+/* ---------------- Navigation ---------------- */
+function go(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+  const navBtn = document.querySelector('.bottom-nav button[data-tab="'+tab+'"]');
+  if(navBtn) navBtn.classList.add('active');
+  window.scrollTo(0,0);
+  if(tab==='reports') renderYieldChart();
+  if(tab==='climate') renderClimateChart();
+}
+function toggleLang(){
+  LANG = LANG==='en' ? 'ta' : 'en';
+  document.getElementById('appTitleText').textContent = LANG==='en' ? 'FarmVault TN' : 'ஃபார்ம்வால்ட் TN';
+  renderCrops();
+}
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+/* ---------------- Home ---------------- */
+function renderHome(){
+  document.getElementById('farmNameLbl').textContent = STATE.farmName;
+  const totalAcres = STATE.fields.reduce((s,f)=>s+parseFloat(f.area||0),0);
+  document.getElementById('statAcres').textContent = totalAcres.toFixed(2);
+  document.getElementById('statFields').textContent = STATE.fields.length;
+  document.getElementById('statCrops').textContent = new Set(STATE.fields.map(f=>f.crop).filter(Boolean)).size;
+  const alerts = buildAlerts();
+  document.getElementById('statAlerts').textContent = alerts.length;
+  document.getElementById('alertsBox').innerHTML = alerts.length ? alerts.map(a=>`<div class="list-item"><div><div class="t">${a.title}</div><div class="s">${a.desc}</div></div><span class="badge ${a.level}">${a.tag}</span></div>`).join('') : '<div class="empty">No active alerts</div>';
+}
+function buildAlerts(){
+  const alerts = [];
+  alerts.push({title:"Rain expected this week", desc:"Review field drainage before applying fertilizer.", tag:"Weather", level:"warn"});
+  STATE.fields.forEach(f=>{
+    if(!f.notes) return;
+  });
+  if(STATE.fields.some(f=>!f.crop)){
+    alerts.push({title:"Missing crop info", desc:"Some fields have no current crop set.", tag:"Farm", level:"soft"});
+  }
+  return alerts;
+}
+
+/* ---------------- Farm / Fields ---------------- */
+function renderFarm(){
+  const mapView = document.getElementById('fieldMapView');
+  mapView.innerHTML = STATE.fields.map(f=>`<div class="stat" style="min-width:90px;"><div class="num" style="font-size:15px;">${f.id}</div><div class="lbl">${f.area} ac · ${f.crop||'—'}</div></div>`).join('') || '<div class="empty">No fields yet</div>';
+  const list = document.getElementById('fieldList');
+  list.innerHTML = STATE.fields.map((f,i)=>`
+    <div class="list-item">
+      <div><div class="t">${f.id} — ${f.crop||'No crop set'}</div><div class="s">${f.area} acre · ${f.soil} · ${f.irrig}</div>${f.notes?`<div class="s">📝 ${f.notes}</div>`:''}</div>
+      <button class="secondary" style="padding:5px 9px; font-size:12px;" onclick="removeField(${i})">Delete</button>
+    </div>`).join('') || '<div class="empty">No fields yet — add your first field.</div>';
+  refreshFieldSelects();
+}
+function openFieldModal(){ document.getElementById('fieldModalBg').classList.add('show'); }
+function saveField(){
+  const id = document.getElementById('fmName').value.trim();
+  const area = parseFloat(document.getElementById('fmArea').value)||0;
+  if(!id || !area){ alert('Enter field name and area'); return; }
+  STATE.fields.push({
+    id, area, soil:document.getElementById('fmSoil').value, irrig:document.getElementById('fmIrrig').value,
+    crop:document.getElementById('fmCrop').value.trim(), notes:document.getElementById('fmNotes').value.trim()
+  });
+  saveState(); closeModal('fieldModalBg'); renderAll();
+  ['fmName','fmArea','fmCrop','fmNotes'].forEach(id=>document.getElementById(id).value='');
+}
+function removeField(i){ STATE.fields.splice(i,1); saveState(); renderAll(); }
+function refreshFieldSelects(){
+  const opts = STATE.fields.map(f=>`<option value="${f.id}">${f.id}</option>`).join('') || '<option value="">No fields</option>';
+  ['fertLogField','expField','hmField'].forEach(sel=>{ const el=document.getElementById(sel); if(el) el.innerHTML=opts; });
+}
+
+/* ---------------- Crops ---------------- */
+function renderCropCategoryTags(){
+  const cats = [...new Set(CROPS.map(c=>c.cat))];
+  const box = document.getElementById('cropCategoryTags');
+  box.innerHTML = `<span class="crop-chip active" data-cat="all" onclick="filterCat(this)">All</span>` +
+    cats.map(c=>`<span class="crop-chip" data-cat="${c}" onclick="filterCat(this)">${c}</span>`).join('');
+}
+let activeCat = 'all';
+function filterCat(el){
+  document.querySelectorAll('.crop-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); activeCat = el.dataset.cat; renderCrops();
+}
+function renderCrops(){
+  const q = (document.getElementById('cropSearch')?.value||'').toLowerCase();
+  const list = CROPS.filter(c=> (activeCat==='all'||c.cat===activeCat) && (c.en.toLowerCase().includes(q)||c.ta.includes(q)) );
+  document.getElementById('cropList').innerHTML = list.map(c=>`
+    <div class="list-item">
+      <div><div class="t">${LANG==='en'?c.en:c.ta} ${LANG==='en'?`<span class="s">(${c.ta})</span>`:`<span class="s">(${c.en})</span>`}</div>
+      <div class="s">${c.cat} · ${c.season} · ${c.duration}</div></div>
+    </div>`).join('') || '<div class="empty">No crops found</div>';
+}
+
+/* ---------------- Fertilizer ---------------- */
+function populateFertSelects(){
+  const cropNames = Object.keys(FERT_RULES);
+  document.getElementById('fertCropSelect').innerHTML = cropNames.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('fertStageSelect').innerHTML = DEFAULT_STAGES.map(s=>`<option>${s}</option>`).join('');
+}
+function renderFertilizer(){
+  const crop = document.getElementById('fertCropSelect').value;
+  const stage = document.getElementById('fertStageSelect').value;
+  const rec = FERT_RULES[crop]?.[stage] || "No recommendation data for this combination yet.";
+  document.getElementById('fertOutput').innerHTML = `<div class="card" style="margin-top:8px; background:var(--bg);"><b>${crop} — ${stage}</b><p style="font-size:13px; margin:6px 0 0;">${rec}</p></div>`;
+}
+function logFertilizer(){
+  const field = document.getElementById('fertLogField').value;
+  const name = document.getElementById('fertLogName').value.trim();
+  const qty = document.getElementById('fertLogQty').value;
+  if(!field || !name || !qty){ alert('Fill all fields'); return; }
+  STATE.fertLogs.push({field, name, qty, date:new Date().toISOString().slice(0,10)});
+  saveState(); renderFertHistory();
+  document.getElementById('fertLogName').value=''; document.getElementById('fertLogQty').value='';
+}
+function renderFertHistory(){
+  document.getElementById('fertHistory').innerHTML = STATE.fertLogs.slice().reverse().map(l=>`
+    <div class="list-item"><div><div class="t">${l.name} — ${l.qty} kg</div><div class="s">${l.field} · ${l.date}</div></div></div>`).join('') || '<div class="empty">No fertilizer records yet</div>';
+}
+
+/* ---------------- Pest ---------------- */
+function populatePestSelect(){
+  document.getElementById('pestCropSelect').innerHTML = Object.keys(PEST_DB).map(c=>`<option>${c}</option>`).join('');
+}
+function renderPest(){
+  const crop = document.getElementById('pestCropSelect').value;
+  const data = PEST_DB[crop]||[];
+  document.getElementById('pestOutput').innerHTML = data.map(p=>`
+    <div class="card" style="margin-top:8px; background:var(--bg);">
+      <b>${p.pest}</b> <span class="badge soft">${p.stage}</span>
+      <p style="font-size:13px; margin:6px 0 2px;"><b>Symptoms:</b> ${p.symptom}</p>
+      <p style="font-size:13px; margin:0;"><b>Management:</b> ${p.mgmt}</p>
+    </div>`).join('') || '<div class="empty">No data</div>';
+}
+
+/* ---------------- Weather ---------------- */
+function renderForecast(){
+  const days = ['Today','Tomorrow','Day 3','Day 4','Day 5'];
+  const icons = ['☀️','⛅','🌧️','🌦️','☀️'];
+  const temps = [32,30,27,28,31];
+  document.getElementById('forecastList').innerHTML = days.map((d,i)=>`
+    <div class="list-item"><div class="t">${icons[i]} ${d}</div><div class="s">${temps[i]}°C</div></div>`).join('');
+}
+
+/* ---------------- Climate chart ---------------- */
+let climateChartObj;
+function renderClimateChart(){
+  const ctx = document.getElementById('climateChart');
+  if(!ctx) return;
+  if(climateChartObj) climateChartObj.destroy();
+  climateChartObj = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:['2019','2020','2021','2022','2023','2024','2025','2026'],
+      datasets:[{label:'Rainfall (mm, sample)', data:[780,650,900,600,1020,720,880,760], backgroundColor:'#2e7d32'}]},
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+/* ---------------- Govt ---------------- */
+function renderGovt(){
+  document.getElementById('govtList').innerHTML = GOVT_SCHEMES.map(s=>`
+    <div class="list-item"><div><div class="t">${s.name}</div><div class="s">${s.desc}</div></div><span class="badge soft">${s.tag}</span></div>`).join('');
+}
+
+/* ---------------- Expenses ---------------- */
+function addExpense(){
+  const field = document.getElementById('expField').value;
+  const type = document.getElementById('expType').value;
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  if(!amount){ alert('Enter amount'); return; }
+  STATE.expenses.push({field, type, amount, date:new Date().toISOString().slice(0,10)});
+  saveState(); renderExpenses();
+  document.getElementById('expAmount').value='';
+}
+function renderExpenses(){
+  const income = STATE.expenses.filter(e=>e.type.includes('Income')).reduce((s,e)=>s+e.amount,0);
+  const cost = STATE.expenses.filter(e=>!e.type.includes('Income')).reduce((s,e)=>s+e.amount,0);
+  document.getElementById('totalExpense').textContent = '₹'+cost.toLocaleString('en-IN');
+  document.getElementById('totalIncome').textContent = '₹'+income.toLocaleString('en-IN');
+  const net = income - cost;
+  const netEl = document.getElementById('netProfit');
+  netEl.textContent = (net>=0?'+':'') + '₹'+net.toLocaleString('en-IN');
+  netEl.style.color = net>=0 ? 'var(--primary)' : 'var(--danger)';
+  document.getElementById('expenseList').innerHTML = STATE.expenses.slice().reverse().map(e=>`
+    <div class="list-item"><div><div class="t">${e.type}</div><div class="s">${e.field||'—'} · ${e.date}</div></div><div class="t" style="color:${e.type.includes('Income')?'var(--primary)':'var(--danger)'}">₹${e.amount.toLocaleString('en-IN')}</div></div>`).join('') || '<div class="empty">No entries yet</div>';
+}
+
+/* ---------------- Reports / Harvest ---------------- */
+function openHarvestModal(){ document.getElementById('harvestModalBg').classList.add('show'); }
+function saveHarvest(){
+  const rec = {
+    field:document.getElementById('hmField').value,
+    year:parseInt(document.getElementById('hmYear').value)||new Date().getFullYear(),
+    crop:document.getElementById('hmCrop').value.trim(),
+    yield:parseFloat(document.getElementById('hmYield').value)||0,
+    cost:parseFloat(document.getElementById('hmCost').value)||0
+  };
+  if(!rec.field || !rec.crop){ alert('Fill field and crop'); return; }
+  STATE.harvests.push(rec); saveState(); closeModal('harvestModalBg'); renderReports();
+}
+function renderReports(){
+  document.getElementById('reportsList').innerHTML = STATE.harvests.slice().sort((a,b)=>b.year-a.year).map(h=>`
+    <div class="list-item"><div><div class="t">${h.field} — ${h.crop} (${h.year})</div><div class="s">Yield: ${h.yield} kg · Cost: ₹${h.cost.toLocaleString('en-IN')}</div></div></div>`).join('') || '<div class="empty">No harvest records yet</div>';
+  renderYieldChart();
+}
+let yieldChartObj;
+function renderYieldChart(){
+  const ctx = document.getElementById('yieldChart');
+  if(!ctx) return;
+  const sorted = STATE.harvests.slice().sort((a,b)=>a.year-b.year);
+  if(yieldChartObj) yieldChartObj.destroy();
+  yieldChartObj = new Chart(ctx, {
+    type:'line',
+    data:{ labels:sorted.map(h=>h.year+' '+h.field), datasets:[{label:'Yield (kg)', data:sorted.map(h=>h.yield), borderColor:'#2e7d32', backgroundColor:'rgba(46,125,50,0.15)', fill:true, tension:0.3}] },
+    options:{ responsive:true, plugins:{legend:{display:false}} }
+  });
+}
+
+/* ---------------- AI Assistant (rule-based, local) ---------------- */
+function chatAppend(role, text){
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  div.className = 'msg '+role;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function initChat(){
+  const log = document.getElementById('chatLog');
+  if(log.children.length===0){
+    chatAppend('bot', "Vanakkam! நான் உங்கள் Farm AI உதவியாளர். உங்கள் நிலம், பயிர், உரம் பற்றி கேளுங்கள்.\nHi! I'm your Farm AI Assistant. Ask me about your fields, crops, or fertilizer.");
+  }
+}
+function askPreset(key){
+  const map = {
+    acres:"What is my total farm area?",
+    crop:"What crop is in F-01?",
+    fert:"What fertilizer does paddy need?",
+    history:"What did I grow last year?"
+  };
+  document.getElementById('chatInput').value = map[key];
+  sendChat();
+}
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  chatAppend('user', text);
+  input.value='';
+  setTimeout(()=>chatAppend('bot', answerQuery(text)), 300);
+}
+function answerQuery(q){
+  const t = q.toLowerCase();
+  const totalAcres = STATE.fields.reduce((s,f)=>s+parseFloat(f.area||0),0);
+
+  if(t.includes('acre') || t.includes('ஏக்கர்') || t.includes('total') || t.includes('area')){
+    return `Your farm "${STATE.farmName}" has ${totalAcres.toFixed(2)} acres across ${STATE.fields.length} field(s): ${STATE.fields.map(f=>f.id+' ('+f.area+' ac)').join(', ')}.`;
+  }
+  const fieldMatch = STATE.fields.find(f=> t.includes(f.id.toLowerCase()));
+  if(fieldMatch && (t.includes('crop') || t.includes('பயிர்'))){
+    return `Field ${fieldMatch.id} currently has ${fieldMatch.crop || 'no crop set'} on ${fieldMatch.area} acres (${fieldMatch.soil}, ${fieldMatch.irrig} irrigation).${fieldMatch.notes ? ' Note: '+fieldMatch.notes : ''}`;
+  }
+  if(t.includes('fertilizer') || t.includes('உரம்')){
+    const cropKey = Object.keys(FERT_RULES).find(c=>t.includes(c.toLowerCase()));
+    if(cropKey){
+      const stages = FERT_RULES[cropKey];
+      return `Fertilizer guidance for ${cropKey}:\n` + Object.entries(stages).map(([s,r])=>`• ${s}: ${r}`).join('\n');
+    }
+    return "Tell me which crop — e.g. 'fertilizer for paddy' or 'fertilizer for groundnut'.";
+  }
+  if(t.includes('pest') || t.includes('disease') || t.includes('பூச்சி')){
+    const cropKey = Object.keys(PEST_DB).find(c=>t.includes(c.toLowerCase()));
+    if(cropKey){
+      return PEST_DB[cropKey].map(p=>`${p.pest} (${p.stage}): ${p.symptom}. Management: ${p.mgmt}`).join('\n');
+    }
+    return "Which crop's pest info do you need? e.g. 'pest in cotton'.";
+  }
+  if(t.includes('last year') || t.includes('history') || t.includes('கடந்த வருடம்')){
+    if(STATE.harvests.length===0) return "No harvest history recorded yet. Add one from the Reports section.";
+    const sorted = STATE.harvests.slice().sort((a,b)=>b.year-a.year);
+    const h = sorted[0];
+    return `Your most recent harvest record: ${h.field} grew ${h.crop} in ${h.year}, yielding ${h.yield} kg at a cost of ₹${h.cost.toLocaleString('en-IN')}.`;
+  }
+  if(t.includes('weather') || t.includes('rain') || t.includes('மழை')){
+    return "Sample forecast: ~31°C, 40% chance of rain this week. Check the Weather tab for the 5-day outlook and drainage advisory.";
+  }
+  if(t.includes('scheme') || t.includes('subsidy') || t.includes('government') || t.includes('திட்டம்')){
+    return "A few schemes to check: PM-KISAN, PMFBY crop insurance, Soil Health Card, and Micro Irrigation subsidy. See the Govt Schemes tab — always verify current details on the official portal.";
+  }
+  return "I can answer about your fields, acreage, crop history, fertilizer guidance, pest info, weather, and government schemes. Try asking, for example: 'What crop is in F-01?' or 'Fertilizer for paddy?'";
+}
+
+/* ---------------- Init ---------------- */
+function renderAll(){
+  renderHome(); renderFarm(); renderCropCategoryTags(); renderCrops();
+  populateFertSelects(); renderFertilizer(); renderFertHistory();
+  populatePestSelect(); renderPest();
+  renderForecast(); renderGovt(); renderExpenses(); renderReports();
+  refreshFieldSelects();
+}
+initChat();
+renderAll();
+</script>
+</body>
+</html>
